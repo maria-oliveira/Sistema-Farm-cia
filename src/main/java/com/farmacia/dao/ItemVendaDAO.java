@@ -1,54 +1,46 @@
 package com.farmacia.dao;
 
-import com.farmacia.model.ItemVenda;
-import com.farmacia.util.DatabaseConnection;
 
+import com.farmacia.infrastructure.ConnectionFactory;
+import com.farmacia.model.ItemVenda;
+import com.farmacia.model.Medicamento;
+
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ItemVendaDAO {
 
-    public void salvar(ItemVenda item) throws SQLException {
-        String sql = "INSERT INTO itens_venda (id_venda, id_medicamento, quantidade, preco_unitario) VALUES (?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, item.getIdVenda());
-            stmt.setInt(2, item.getIdMedicamento());
-            stmt.setInt(3, item.getQuantidade());
-            stmt.setDouble(4, item.getPrecoUnitario());
-            stmt.executeUpdate();
-        }
-    }
-
-    public List<ItemVenda> listarPorVenda(int idVenda) throws SQLException {
+    public List<ItemVenda> listarPorVenda(Long vendaId) {
+        final String sql = "SELECT iv.id, iv.quantidade, iv.preco_unitario, m.id AS med_id, m.nome " +
+                "FROM itens_venda iv JOIN medicamentos m ON m.id = iv.medicamento_id " +
+                "WHERE iv.venda_id=? ORDER BY iv.id";
         List<ItemVenda> itens = new ArrayList<>();
-        String sql = "SELECT * FROM itens_venda WHERE id_venda = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, idVenda);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                ItemVenda item = new ItemVenda(
-                        rs.getInt("id"),
-                        rs.getInt("id_venda"),
-                        rs.getInt("id_medicamento"),
-                        rs.getInt("quantidade"),
-                        rs.getDouble("preco_unitario")
-                );
-                itens.add(item);
+        try (Connection c = ConnectionFactory.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, vendaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ItemVenda iv = new ItemVenda();
+                    iv.setId(rs.getLong("id"));
+                    iv.setQuantidade(rs.getInt("quantidade"));
+                    BigDecimal pu = rs.getBigDecimal("preco_unitario");
+                    iv.setPrecoUnitario(pu);
+
+                    Medicamento m = new Medicamento();
+                    m.setId(rs.getLong("med_id"));
+                    m.setNome(rs.getString("nome"));
+                    iv.setMedicamento(m);
+
+                    itens.add(iv);
+                }
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao listar itens da venda: " + e.getMessage(), e);
         }
         return itens;
     }
-
-    public void deletarPorVenda(int idVenda) throws SQLException {
-        String sql = "DELETE FROM itens_venda WHERE id_venda = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, idVenda);
-            stmt.executeUpdate();
-        }
-    }
 }
+
 

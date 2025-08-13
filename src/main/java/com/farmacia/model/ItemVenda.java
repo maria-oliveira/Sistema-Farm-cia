@@ -1,68 +1,63 @@
 package com.farmacia.model;
 
+import java.math.BigDecimal;
+import java.util.Objects;
+
 public class ItemVenda {
-    private int id;
-    private int vendaId;
-    private int medicamentoId;
+    private Long id;
+    private Medicamento medicamento;
     private int quantidade;
-    private double precoUnitario;
+    private BigDecimal precoUnitario;
 
-    public ItemVenda() {
-    }
+    public ItemVenda() {}
 
-    public ItemVenda(int id, int vendaId, int medicamentoId, int quantidade, double precoUnitario) {
+    public ItemVenda(Long id, Medicamento medicamento, int quantidade, BigDecimal precoUnitario) {
         this.id = id;
-        this.vendaId = vendaId;
-        this.medicamentoId = medicamentoId;
-        this.quantidade = quantidade;
-        this.precoUnitario = precoUnitario;
+        this.medicamento = medicamento;
+        setQuantidade(quantidade);
+        setPrecoUnitario(precoUnitario);
     }
 
-    public ItemVenda(int vendaId, int medicamentoId, int quantidade, double precoUnitario) {
-        this.vendaId = vendaId;
-        this.medicamentoId = medicamentoId;
-        this.quantidade = quantidade;
-        this.precoUnitario = precoUnitario;
+    public BigDecimal getSubtotal() {
+        return precoUnitario.multiply(BigDecimal.valueOf(quantidade));
     }
 
-    // Getters e Setters
-    public int getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public Medicamento getMedicamento() { return medicamento; }
+    public void setMedicamento(Medicamento medicamento) { this.medicamento = medicamento; }
 
-    public int getVendaId() {
-        return vendaId;
-    }
-
-    public void setVendaId(int vendaId) {
-        this.vendaId = vendaId;
-    }
-
-    public int getMedicamentoId() {
-        return medicamentoId;
-    }
-
-    public void setMedicamentoId(int medicamentoId) {
-        this.medicamentoId = medicamentoId;
-    }
-
-    public int getQuantidade() {
-        return quantidade;
-    }
-
+    public int getQuantidade() { return quantidade; }
     public void setQuantidade(int quantidade) {
+        if (quantidade <= 0) throw new IllegalArgumentException("Quantidade deve ser > 0");
         this.quantidade = quantidade;
     }
 
-    public double getPrecoUnitario() {
-        return precoUnitario;
+    public BigDecimal getPrecoUnitario() { return precoUnitario; }
+    public void setPrecoUnitario(BigDecimal precoUnitario) {
+        if (precoUnitario == null || precoUnitario.compareTo(BigDecimal.ZERO) < 0)
+            throw new IllegalArgumentException("Preço unitário inválido");
+        this.precoUnitario = precoUnitario;
     }
 
-    public void setPrecoUnitario(double precoUnitario) {
-        this.precoUnitario = precoUnitario;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ItemVenda)) return false;
+        ItemVenda that = (ItemVenda) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() { return Objects.hash(id); }
+
+    @Override
+    public String toString() {
+        return "ItemVenda{id=" + id +
+                ", medicamento=" + (medicamento != null ? medicamento.getNome() : "null") +
+                ", quantidade=" + quantidade +
+                ", precoUnitario=" + precoUnitario + '}';
     }
 }
+
