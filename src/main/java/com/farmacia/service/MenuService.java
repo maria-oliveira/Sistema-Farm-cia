@@ -4,9 +4,10 @@ import com.farmacia.dao.ClienteDAO;
 import com.farmacia.dao.MedicamentoDAO;
 import com.farmacia.dao.VendaDAO;
 import com.farmacia.model.Cliente;
-import com.farmacia.model.medicamento;
+import com.farmacia.model.Medicamento;
 import com.farmacia.model.Venda;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
@@ -45,7 +46,9 @@ public class MenuService {
                     default -> System.out.println("Opção inválida.");
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                System.err.println("Erro de banco de dados: " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("Erro: " + e.getMessage());
             }
         }
     }
@@ -59,15 +62,16 @@ public class MenuService {
         System.out.print("Validade (YYYY-MM-DD): ");
         LocalDate validade = LocalDate.parse(sc.nextLine());
         System.out.print("Preço: ");
-        double preco = sc.nextDouble();
+        BigDecimal preco = sc.nextBigDecimal();
         sc.nextLine();
 
-        medicamentoDAO.salvar(new medicamento(0, nome, qtd, validade, preco));
+        Medicamento medicamento = new Medicamento(null, nome, qtd, validade, preco);
+        medicamentoDAO.criar(medicamento);
         System.out.println("Medicamento cadastrado!");
     }
 
     private void listarMedicamentos() throws SQLException {
-        List<medicamento> lista = medicamentoDAO.listar();
+        List<Medicamento> lista = medicamentoDAO.listarTodos();
         lista.forEach(System.out::println);
     }
 
@@ -76,26 +80,62 @@ public class MenuService {
         String nome = sc.nextLine();
         System.out.print("CPF: ");
         String cpf = sc.nextLine();
+        System.out.print("Telefone: ");
+        String telefone = sc.nextLine();
+        System.out.print("Email: ");
+        String email = sc.nextLine();
 
-        clienteDAO.salvar(new Cliente(0, nome, cpf));
+        Cliente cliente = new Cliente(null, nome, cpf, telefone, email);
+        clienteDAO.criar(cliente);
         System.out.println("Cliente cadastrado!");
     }
 
     private void listarClientes() throws SQLException {
-        List<Cliente> lista = clienteDAO.listar();
+        List<Cliente> lista = clienteDAO.listarTodos();
         lista.forEach(System.out::println);
     }
 
     private void registrarVenda(Scanner sc) throws SQLException {
         System.out.print("ID Cliente: ");
-        int idCliente = sc.nextInt();
+        Long idCliente = sc.nextLong();
         System.out.print("ID Medicamento: ");
-        int idMed = sc.nextInt();
+        Long idMed = sc.nextLong();
         System.out.print("Quantidade: ");
         int qtd = sc.nextInt();
         sc.nextLine();
 
-        vendaDAO.registrarVenda(new Venda(0, idCliente, idMed, qtd, null));
-        System.out.println("Venda registrada!");
+        // Verifica se medicamento existe
+        Medicamento medicamento = medicamentoDAO.buscarPorId(idMed);
+        if (medicamento == null) {
+            System.out.println("Medicamento não encontrado!");
+            return;
+        }
+
+        // Verifica estoque
+        if (medicamento.getQuantidade() < qtd) {
+            System.out.println("Estoque insuficiente!");
+            return;
+        }
+
+        // Verifica se cliente existe
+        Cliente cliente = clienteDAO.buscarPorId(idCliente);
+        if (cliente == null) {
+            System.out.println("Cliente não encontrado!");
+            return;
+        }
+
+        // Cria a venda
+        Venda venda = new Venda(null, cliente);
+
+        // Passa preço como BigDecimal (assumindo que getPreco retorna BigDecimal)
+        venda.adicionarItem(medicamento, qtd, medicamento.getPreco());
+
+        // Salva no banco
+        vendaDAO.criarVendaComItens(venda);
+
+        System.out.println("Venda registrada com sucesso!");
     }
 }
+
+
+
